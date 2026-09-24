@@ -1,0 +1,5 @@
+import os
+
+YEARS = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+SG_LAT, SG_LON = (1.15, 1.48), (103.6, 104.1)
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
