@@ -13,8 +13,10 @@
 #   BUCKET_NAME   required, read from .env in the repo root (e.g. BUCKET_NAME=gs://my-bucket)
 #   REGION        asia-southeast1
 #   ZONE          asia-southeast1-a
-#   MACHINE_TYPE  e2-highmem-8    (single node: 8 vCPU, 64 GB; the project quota is 12 vCPUs)
-#   DISK_GB       100
+#   MASTER_TYPE   e2-standard-4   (driver only: 4 vCPU, 16 GB)
+#   WORKER_TYPE   e2-highmem-4    (executors: 4 vCPU, 32 GB each)
+#   NUM_WORKERS   2               (master + workers = 12 vCPUs, the project quota)
+#   DISK_GB       100             (per node; shuffle and DISK_ONLY caches live on the workers)
 #
 # The script waits until the job finishes. Ctrl-C stops the waiting only: the job keeps running and
 # the cluster is still deleted at the end. Follow it with:
@@ -38,7 +40,9 @@ fi
 BUCKET_NAME="${BUCKET_NAME:?Set BUCKET_NAME in .env (e.g. BUCKET_NAME=gs://my-bucket)}"
 REGION="${REGION:-asia-southeast1}"
 ZONE="${ZONE:-asia-southeast1-a}"
-MACHINE_TYPE="${MACHINE_TYPE:-e2-highmem-8}"
+MASTER_TYPE="${MASTER_TYPE:-e2-standard-4}"
+WORKER_TYPE="${WORKER_TYPE:-e2-highmem-4}"
+NUM_WORKERS="${NUM_WORKERS:-2}"
 DISK_GB="${DISK_GB:-100}"
 IMAGE_VERSION="2.2-debian12"
 
@@ -101,15 +105,21 @@ ${ARGS_YAML}placement:
         zoneUri: $ZONE
       masterConfig:
         numInstances: 1
-        machineTypeUri: $MACHINE_TYPE
+        machineTypeUri: $MASTER_TYPE
+        diskConfig:
+          bootDiskType: pd-balanced
+          bootDiskSizeGb: 50
+      workerConfig:
+        numInstances: $NUM_WORKERS
+        machineTypeUri: $WORKER_TYPE
         diskConfig:
           bootDiskType: pd-balanced
           bootDiskSizeGb: $DISK_GB
       softwareConfig:
         imageVersion: $IMAGE_VERSION
         properties:
-          "dataproc:dataproc.allow.zero.workers": "true"
           "spark:spark.sql.session.timeZone": "Asia/Singapore"
+          "spark:spark.driver.memory": "4g"
 EOF
 
 echo "== Uploading $LOCAL_FILE and ${#HELPERS[@]} helper module(s) -> $BUCKET_NAME/code/"
@@ -118,7 +128,7 @@ gcloud storage cp "$LOCAL_FILE" ${HELPERS[@]+"${HELPERS[@]}"} "$BUCKET_NAME/code
 echo "== Workflow"
 cat "$WORKFLOW_FILE"
 
-echo "== Running on $CLUSTER ($MACHINE_TYPE, single node, $REGION). The cluster is deleted when the job ends."
+echo "== Running on $CLUSTER ($MASTER_TYPE + $NUM_WORKERS x $WORKER_TYPE, $REGION). The cluster is deleted when the job ends."
 START=$(date +%s)
 gcloud dataproc workflow-templates instantiate-from-file \
   --file="$WORKFLOW_FILE" --region="$REGION"

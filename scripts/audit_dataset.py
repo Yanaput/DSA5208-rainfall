@@ -35,16 +35,14 @@ import pyspark.sql.types as T
 from pyspark import StorageLevel
 from pyspark.sql import SparkSession, Window
 
-from utils import YEARS, SG_LAT, SG_LON, BUCKET_NAME
+from utils import YEARS, BUCKET_NAME, BUCKET_S, MIN_COVERAGE
 
-
+SG_LAT, SG_LON = (1.15, 1.48), (103.6, 104.1)
 COLUMNS = ["date", "timestamp", "update_timestamp", "station_id", "station_name", "station_device_id",
            "location_longitude", "location_latitude", "reading_update_timestamp", "reading_value",
            "reading_type", "reading_unit"]
 EXPECTED_TYPE = "TB1 Rainfall 5 Minute Total F"
-BUCKET_S = 300                          # 5 minutes
 EXTREME_MM = 20.0                       # 5-minute totals above this are flagged for review
-MIN_COVERAGE = 0.10                     # stations below this share of a year's buckets are not used that year
 FULL_DAY = 230                          # a station-day counts as complete with >= 230 of 288 readings
 WET_DAY_SHARE = 0.75                    # a day is "wet island-wide" when >= 75% of complete stations get >= 1 mm
 NEW_SITE_M = 500                        # a move further than this is treated as a new site
