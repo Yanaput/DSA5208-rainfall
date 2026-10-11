@@ -1,0 +1,8 @@
+# For running notebooks and scripts locally or on Colab (Colab already has most of these).
+# Dataproc jobs don't use this file: they run on the cluster image's own PySpark 3.5 (image 2.2-debian12).
+requests
+numpy
+pandas
+pyarrow
+matplotlib
+pyspark==4.0.1
