@@ -6,3 +6,4 @@ pandas
 pyarrow
 matplotlib
 pyspark==4.0.1
+contextily
